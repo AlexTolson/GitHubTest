@@ -1,0 +1,395 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<krpano version="1.19">
+
+<!-- ********** -->
+<!-- PanotourMaps -->
+<!-- id : panotourmaps -->
+<!-- ********** -->
+
+
+		<ptplugin name="panotourmaps" lat="48.861023" lng="2.335859" zoom="12" maptypelayer="road" position="left" size="30" resizable="true" multimap="false" openatstart="true" state="true" bgcolor="f2f2f2" zorder="1" centeronspots="true" engine="KolorMap">
+
+		<radar visible="true" radius="8000" linktozoom="true" quality="8" linecolor="ffffff" lineopacity="0.50000762951094835" linewidth="1" fillcolor="ffffff" fillopacity="0.30000762951094834" />
+
+		<markers animation="false" />
+
+
+		<controls zoom="true" pan="true" scale="false" maptype="true" overview="false">
+			<ui draggable="true" scrollable="true" dblclick="true" />
+			<specific />
+		</controls>
+
+		<markerSelected name="" heading="" fov="" />
+
+
+
+
+
+
+	</ptplugin>
+
+	<action name="kolorMapJsReady_panotourmaps">
+		set(ptplugin[panotourmaps].jsready, true);
+	</action>
+
+
+
+
+
+
+
+
+
+	<!-- Begin PanotourMaps events and actions -->
+	<events name="panotourmapsEvents"
+	onxmlcomplete="ifnot(panotourmapsMapLoaded,set(tour_displaymap,true););"
+	onnewpano="panotourmapsActivateDefaultMarker();"
+	onviewchanged="panotourmapsOnviewchange()"
+	onhidetourmap="panotourmapsClosetourmap();"
+	onshowtourmap="if(tour_displaymap,panotourmapsOpentourmap(););"
+	onenterfullscreen="panotourmapsUpdateMaxMapSize();"
+	onexitfullscreen="panotourmapsUpdateMaxMapSize();"
+	keep="true" />
+
+
+	<krpano panotourmapsMarkerDefaultSet="false" />
+	<krpano panotourmapsMapLoaded="false" />
+
+
+	<action name="panotourmapsUpdateMaxMapSize">
+		js(invokePluginFunction(panotourmaps, updateResizableMapMaxSize));
+	</action>
+
+	<action name="kolorMapJsReadyLoop_panotourmaps">
+		if(ptplugin[panotourmaps].jsready,
+			stopdelayedcall(jsReadyLoopId_panotourmaps);
+			if(%1 == "close",
+				panotourmapsClosetourmap();
+			,
+				panotourmapsOpentourmap();
+			);
+		,
+			delayedcall(jsReadyLoopId_panotourmaps, 0.2, kolorMapJsReadyLoop_panotourmaps(%1));
+		);
+	</action>
+
+	<action name="panotourmapsClosetourmap">
+		if(ptplugin[panotourmaps].jsready,
+			set(ptplugin[panotourmaps].state, false);
+			js(invokePluginFunction(panotourmaps, openCloseMap, close));
+		,
+			kolorMapJsReadyLoop_panotourmaps(close);
+		);
+	</action>
+
+
+	<action name="panotourmapsOpentourmap">
+		if(ptplugin[panotourmaps].jsready,
+			set(ptplugin[panotourmaps].state, true);
+			js(invokePluginFunction(panotourmaps, openCloseMap, open));
+		,
+			kolorMapJsReadyLoop_panotourmaps(open);
+		);
+	</action>
+
+
+	<action name="panotourmapsChangescene">
+		mainloadscene(%1);if(xml.scene != %1,panotourmapsGoMarker(%2););
+	</action>
+
+	<action name="panotourmapsOnviewchange">
+		if ( panotourmapsMapLoaded == true,
+			ifnot(ptplugin[panotourmaps].markerSelected.name == "",
+				js(invokePluginFunction(panotourmaps, changeDirection, get(view.hlookat), get(view.hfov)));
+			);
+		);
+	</action>
+
+	<action name="panotourmapsGoMarker">
+		if ( panotourmapsMapLoaded == true,
+
+			set(ptplugin[panotourmaps].markerSelected.name, %1);
+			set(ptplugin[panotourmaps].markerSelected.heading, get(view.hlookat));
+			set(ptplugin[panotourmaps].markerSelected.fov, get(view.hfov));
+			js(invokePluginFunction(panotourmaps, changeCurrentMarker, %1, get(view.hlookat), get(view.hfov), get(ptplugin[panotourmaps].centeronspots)));
+
+			if( panotourmapsMarkerDefaultSet == false,
+				js(setMapDefaultMarker(panotourmaps, %1, get(view.hlookat), get(view.hfov)));
+				set(panotourmapsMarkerDefaultSet,true);
+			);
+		);
+	</action>
+
+	<action name="panotourmapsUnselectMarker">
+		set(ptplugin[panotourmaps].markerSelected.name, "");
+		js(invokePluginFunction(panotourmaps, unselectCurrentMarker));
+
+		js(setMapDefaultMarker(panotourmaps, null, null, null));
+	</action>
+
+	<action name="panotourmapsActivateDefaultMarker">
+		set(panotourmapsMapLoaded, true);
+
+		set(panotourmapsMapSpotFound, false);
+		for(set(defaultmarkerinc,0), defaultmarkerinc LT ptplugin[panotourmaps].marker.count , inc(defaultmarkerinc),
+                        if(ptplugin[panotourmaps].marker[get(defaultmarkerinc)].isscene == true,
+				if(panotourmapsMapSpotFound == false,
+					if(ptplugin[panotourmaps].marker[get(defaultmarkerinc)].scene == xml.scene,
+						ifnot(ptplugin[panotourmaps].marker[get(defaultmarkerinc)].name == ptplugin[panotourmaps].markerSelected.name,
+							panotourmapsGoMarker(get(ptplugin[panotourmaps].marker[get(defaultmarkerinc)].name));
+						);
+						set(panotourmapsMapSpotFound, true);
+					);
+				);
+			);
+		);
+
+		if(panotourmapsMapSpotFound == false,
+			panotourmapsUnselectMarker();
+		);
+	</action>
+
+
+  <include url="%FIRSTXML%/graphics/alpo.sidebar-v1.0.72/sidebar.xml"/>
+	<sidebar name="settings"
+		groupCount="1"
+		isRealGroup_0="false"
+		totalPanos0="1"
+		groupName0="get:data[en_pano10_title].content"
+		group0Contents="pano10|"
+		group0MainPano="pano10"
+		SceneName0="pano10"
+		groupMessage0="pano10_title"
+		sbColor="030303"
+		sbColorAlpha="0.70"
+		sbWidth="245"
+		sbAlign="left"
+		sbParent="STAGE"
+		startOpened="true"
+		startOpenedMob="true"
+		sbCloseIfnew="true"
+		sbCloseIfnewMob="true"
+		sbIconPosition="bottom"
+		sbIconAlpha="80"
+		sbIconAlphaSep="false"
+		sbIconAlphaSepVal="90"
+		sbIconOverState="false"
+		sbIconOpenedState="false"
+		sbIconOpenedOverState="false"
+		sbIconPositionX="-5"
+		sbIconPositionY="0"
+		sbIconPositionOpenUse="false"
+		sbIconPositionOpen="top"
+		sbIconPositionOpenX="0"
+		sbIconPositionOpenY="0"
+		sbIconHideShowDelay="false"
+		sbIconDelay="6"
+		sbOpenActions="0"
+		sbCloseActions="0"
+		sbMenuType="thumbscont"
+		sbIconUrl="%FIRSTXML%/graphics/alpo.sidebar-v1.0.72/graphics/sb_menu.png"
+		textFieldUrl="%FIRSTXML%/graphics/textfield.swf"
+		scrollAltUrl="%FIRSTXML%/graphics/scrollarea.js"
+		sbcurrent_PanoTxt="alpo_sidebar_fullsbcurrent_PanoTxt"
+		sbcurrent_PanoTxtFont="trebuchet ms"
+		sbcurrent_PanoTxtFontSize="14"
+		sbcurrent_PanoTxtColor="b7b7b7"
+		sbcurrent_PanoTxtAlpha="0.70"
+		sbcurrent_PanoTxtAlign="center"
+		sbcurrent_PanoTxtFontItalic=""
+		sbcurrent_PanoTxtFontBold=""
+		sbcurrent_PanoTxtFontTD=""
+		sbcurrent_PanoNameTxtColor="eeeeee"
+		sbcurrent_PanoNameTxtSize="18"
+		sbcurrent_PanoNameTxtDecorU1=""
+		sbcurrent_PanoNameTxtDecorU2=""
+		sbcurrent_PanoNameTxtDecorB1=""
+		sbcurrent_PanoNameTxtDecorB2=""
+		sbcurrent_PanoNameTxtDecorI1=""
+		sbcurrent_PanoNameTxtDecorI2=""
+		sbOpenCloseUseOpener="false"
+		sbOpenCloseUseButton="true"
+		sbContextMenuItem="false"
+		sbZorder="1"/>
+
+		<style name="sbBlocks"
+			keep="true"
+			type="container"
+			bgcapture="false"
+			bgalpha="0.0"
+			width="100%"
+			accuracy="1"/>
+
+			<style name="sbOpenerST"
+				keep="false"/>
+
+				<style name="sbIconST"
+					visible="true"/>
+
+					<style name="scrollareaDescr"
+						keep="true"
+						devices="html5"
+						url="get:sidebar[settings].scrollAltUrl"
+						direction="v"
+						draggable="true"
+						mwheel="true"
+						onhover_autoscrolling="false"
+						overscroll="0.5"
+						friction="0.95"
+						acceleration="0.08"
+						returnacceleration="0.15"
+						momentum="0.06"
+						accuracy="1"
+						align="top"
+						width="100%"/>
+
+						<events name="sbBlocksHEv"
+							keep="true"
+							onxmlcomplete="delayedcall(0, sbBlocksHEvAct());"/>
+
+							<action name="sbBlocksHEvAct">   calcBlock1H();       if(layer[backBtn].visible, calc(layer[scrolLayer].height, layer[calc(layer[scrolLayer].parent)].height - layer[backBtn].height - (layer[scrolLayer].y - layer[backBtn].height) ); , set(layer[scrolLayer].height, 100%); ); set(events[sbBlocksHEv].onresize, sbBlocksHEvAct());</action>
+
+							<style name="sbBlock1ST"
+								parent="sb"
+								align="top"
+								minheight="0"
+								maxheight="0"
+								y="0"  />
+
+								<layer name="sbBlock1"
+									style="sbBlocks|sbBlock1ST"/>
+
+									<action name="calcBlock1H">calc(layer[sbBlock1].height, 45 * stageheight * 0.01); if(layer[sbBlock1].height LT layer[sbBlock1].minheight AND layer[sbBlock1].minheight != 0, copy(layer[sbBlock1].height, layer[sbBlock1].minheight); ); if(layer[sbBlock1].height GT layer[sbBlock1].maxheight AND layer[sbBlock1].maxheight != 0, copy(layer[sbBlock1].height, layer[sbBlock1].maxheight); ); calc(layer[sbBlock1].realBlockY, 0 + 0);</action>
+
+								<style name="current_PanoNameUseST"
+									url="" keep="false"/>
+
+									<include url="%FIRSTXML%/graphics/alpo.sidebar-v1.0.72/menutype/thumbscont.xml"/>
+
+									<style name="scrolLayerST"
+										keep="true"
+										type="container"
+										align="top"
+										parent="sbBlock1"
+										accuracy="1"
+										width="0"
+										height="100%"/>
+
+										<sidebar name="settings"
+											sbUseMainMenu="true"/>
+
+											<sidebar name="settings"
+												sbUseLogo="false"  />
+
+												<sidebar name="settings"
+													sbUseLogo2="false"  />
+
+													<sidebar name="settings"
+														current_PanoNameUse="false" />
+
+														<sidebar name="settings"
+															useButtons="false" />
+
+															<events name="alpoSBinitEV"
+																keep="true"
+																onxmlcomplete="alpoSBinit"/>
+
+																<plugin name="alpoSB"
+																	devices="html5"
+																	keep="true"
+																	url="%FIRSTXML%/graphics/alpo.sidebar-v1.0.72/js/alpo.sidebar.js"/>
+
+																	<action name="alpoSBinit" type="Javascript"><![CDATA[ window.alpoSB={ plugID : 'alpo_sidebar_full', plugDir : 'indexdata/graphics/alpo.sidebar-v1.0.72', flags : {}, font : '', jsonData : '{ "project" : { "data" : { "dataDir" : "indexdata", "bgClr" : "#ffffff", "fgClr" : "#000000", "groupsCount" : 1 }, "groups" : [  { "id" : "panogroup11", "title" : "panogroup11_title", "description" : "panogroup11_description", "url" : "%FIRSTXML%/location_1_2_10/thumbnail.jpg", "urlAlt" : "%FIRSTXML%/graphics/alpo.sidebar-v1.0.72/assets/--/panogroup11.png", "color" : "#808080", "real" : false, "panoCount" : 1, "mainPano" : "pano10", "panoramas" : [  { "id" : "pano10", "parentID" : "panogroup11", "title" : "pano10_title", "description" : "pano10_description", "urlAlt" : "%FIRSTXML%/graphics/alpo.sidebar-v1.0.72/assets/--/pano10.png", "url" : "%FIRSTXML%/location_1_2_10/thumbnail.jpg" }  ] }  ] }, "plugin" : { "includes" : { "textfield" : "%FIRSTXML%/graphics/textfield.swf", "scrollarea" : "%FIRSTXML%/graphics/scrollarea.js" }, "settings" : { "sb" : { "width" : 245, "specifyWidth" : false,  "color" : "030303", "alpha" : 0.00, "align" : "left", "zorder" : 98, "startOpened" : true, "startOpenedMob" : true, "closeIfnew" : true, "closeIfnewMob" : true, "menuType" : "thumbscont", "openerUse" : false, "contextMenuUse" : true }, "btn" : { "use" : true, "position" : "bottom", "alpha" : 80, "alphaOpenUse" : false, "alphaOpen" : 90, "overStateUse" : false, "openStateUse" : false, "openOverStateUse": false, "posX" : "-5", "posY" : "0", "posOpenUse" : false, "posOpen" : "top", "posXOpen" : "0", "posYOpen" : "0", "showHideDelayUse": false, "showHideDelay" : 6, "sbOpenActions" : 0, "sbCloseActions" : 0, "url" :  "%FIRSTXML%/graphics/alpo.sidebar-v1.0.72/graphics/sb_menu.png" , "urlOver" : "", "urlOpen" : "", "urlOpenOver" : "" }, "currentPano" : { "text" : "alpo_sidebar_fullsbcurrent_PanoTxt", "font" : "trebuchet ms", "fontSize" : 14, "color" : "b7b7b7", "alpha" : "0.70", "align" : "center", "italic" : "", "bold" : "", "underline" : "", "colorName" : "eeeeee", "fontSizeName" : "18", "italicNameUse" : "false", "boldNameUse" : "false", "underlineNameUse" : "false" }, "menu" : [ { "menuType" : "thumbscont", "thumbsContMargin" : 5, "tcScrollHeight" : 56, "tcScrollVSpace" : 5, "tcScrollXOffset": 0, "tcScrollMenuW" : 243   }, { "menuType" : "hierarchical", "activeMenuHr" : false, "excludePano" : "", "groupAsText" : true, "panoAsText" : false, "custAsText" : false, "width" : 203, "height" : 50, "vSpace" : 5, "xOffset" : 20,   "loadMainPano" : false, "loadMainOpen" : false, "bgrColor" : "0x111111", "bgrAlpha" : 0.60, "txtOffsetL" : 10, "txtOffsetR" : 0, "txtAlign" : "left", "font" : "arial", "fontSize" : 13, "color" : "eeeeee", "italic" : " font-style:normal; ", "bold" : " font-weight:normal; ", "underline" : " text-decoration:none; ", "overStateUse" : false, "overColorUse" : true, "overColor" : "0x000000", "overAlpha" : 0.30, "itemIconUse" : true, "itemIconDflt" : true, "itemIcon" : "", "itemIconOffsetX" : "0", "itemIconOffsetY" : "0", "itemIconScale" : 100, "itemIconAlign" : "right", "itemIconSpecify" : false,  "itemBorderUse" : true, "itemBorder" : "0,0,1,0 0xeeeeee 0.60", "itemBorderT" : 0, "itemBorderR" : 0, "itemBorderB" : 1, "itemBorderL" : 0, "thumbPos" : "top", "thumbTxtPadT" : 15, "thumbTxtPadB" : 15, "thumbHeight" : 50, "thumbVStxtMarg" : 5, "thumbAlign" : "left", "thumbHorizOff" : 10,   "backBtn" : { "height" : 32, "width" : 245,   "bottomMarg" : 0, "align" : "lefttop", "bgrUse" : true, "bgrColor" : "0x0b0b0b", "bgrAlpha" : 0.40, "bgrChange" : true, "bgrChangeColor" : "0x0cffa2", "bgrChangeAlpha" : 0.50, "txtUse" : true, "txtSrc" : "group", "font" : "arial", "fontSize" : 14, "fontColor" : "eeeeee", "txtAlign" : "left", "txtVcenter" : true, "paddingT" :  0 , "paddingB" :  0 , "paddingR" : 8, "paddingL" : 30, "iconUse" : true, "iconWidth" : 24, "iconHeight" : 24, "iconUrl" : "  %FIRSTXML%/graphics/alpo.sidebar-v1.0.72/graphics/arr_back_left.png  ", "italic" : "  font-style:normal;  ", "bold" : "  font-weight:normal;  ", "underline" : "  text-decoration:none;  " }, "scrollInd" : { "use" : false, "color" : "0x505050", "alpha" : 1.00, "width" : 8, "zorder" : 98, "barUse" : false, "barColor" : "0x353526", "barAlpha" : 0.50 }, "scrollBtns" : { "use" : false, "width" : "20", "height" : "18", "scale" : 100, "bgcolor" : "0x505050", "bgalpha" : 1.00, "align" : "left", "zorder" : 98, "overStateUse" : true, "bgrOverColor" : "0x1a1a1a", "bgrOverAlpha" : 0.90, "iconOverAlpha" : 30, "iconDflt" : true, "iconFileT" : "", "iconFileB" : "", "iconAlpha" : 50 } } ], "customItemsSet" : { "menuOrganize" : "dflt", "ignoreRest" : true } }, "customSet" : [  { "title" : "alpo_sidebar_fullitemName", "image" : "", "elemIndex" : 0, "custom" : true, "isChild" : false, "subItemsInd" : "", "subGroupsColor" : "808080", "subPanoIDs" : "", "itemActions" :  ""  }  ] } } ' }; krpano.set('events[alpoSBinitEV].onxmlcomplete', null); ]]></action>
+
+																	<sidebar name="settings"
+																		loadGroupMainPano="false"
+																		sbThumbsContMargin="5"
+																		sbThumbsCloseIfnew="false"
+																		sbPanoContDescrUse="false"
+																		sbPanoContNameUse="false"
+																		sbPanoContNameSingleUse="false"
+																		sbPanoNameFontAlign="center"
+																		sbPanoChooseContCloseUrl="%FIRSTXML%/graphics/alpo.sidebar-v1.0.72/graphics/sb_close_w.png"
+																		sbPanoContCloseAlpha="90"
+																		sbPanoContCloseScale="80"
+																		overAnimUse="true"
+																		overAnimColor="true"
+																		overColor="000000"
+																		overColorAlpha="0.50"
+																		overAnimLineColor="true"
+																		overLineColor="ffffff"
+																		overLineColorAlpha="0.60"
+																		overLineWidth="3"
+																		sbScrollAreaHeight="56"
+																		sbScrollAreaVSpace="5"
+																		sbScrollAreaNameWidth="243"
+																		sbScrollNameTxtBgrColor="111111"
+																		sbScrollNameTxtBgrAlpha="0.30"
+																		sbPanoNameTxtLeftPadding="0"
+																		sbPanoNameTxtRightPadding="0"
+																		sbScrollAreaXOffset="0"
+																		sbPanoNameFont="trebuchet ms"
+																		sbPanoNameFontSize="16"
+																		sbPanoContNumOfTotalTxtSize="12"
+																		sbPrefixTotal="alpo_sidebar_fullsbPrefixTotal"
+																		sbPanoContNumOfTotalColor="eeeeee"
+																		sbPanoContNameUseFontSize="16"
+																		sbPanoNameFontColor="eeeeee"
+																		sbPanoContNameUsePosition="center"
+																		sbPanoContNameUseAlign="top"
+																		sbPanoContNameUseOffset="0"
+																		sbDisplayPanoTotalInGr=""
+																		sbPanoNameFontItalic="font-style&#58;normal&#59;"
+																		sbPanoNameFontBold="font-weight&#58;normal&#59;"
+																		sbPanoNameFontTD="text-decoration&#58;none&#59;"
+																		sbPanoContNumOfTotal="false"
+																		sbPanoContOverlay="true"
+																		sbPanoContEye="true"
+																		sbPanoContThumbsBottomMargin="3"
+																		sbSinglePanoClick="false"
+																		sbMarkCurrentGroup="false"
+																		sbSyncExternalLoad="false"
+																		sbThumbsCloseIfnewIfClosed="false"
+																		delayOfSyncExternal="0.5"
+																		sbScrlBtnsUse="false"
+																		sbTcMenuItemBorder="false"
+																		sbTcMenuItemBorderSet="0"
+																		itemTcBorderContW="243"
+																		itemTcBorderContH="55"
+																		itemTcBorderContXoff="0"
+																		itemTcBorderContYoff="0"/>
+
+																		<krpano devices="mobile">
+
+																			<sidebar name="settings"
+																				sbLightBoxed="true"
+																				sbCloseSBinLBStyle="false"
+																				sbOpenSBinLBStyle="false"/>
+																			</krpano>
+
+																			<style name="sbPanoDisplay_closeST"
+																				align="righttop"/>
+																				<style name="sbPanoDisplayST"
+																					align="lefttop"
+																					bgcolor="0x030303"
+																					bgalpha="0.70"/>
+
+																					<style name="sbPanoThumbInner"
+																						margin="3"/>
+
+																						<style name="sbPanoThumbInnerInner"
+																							bgcolor="0x000000"
+																							bgalpha="0.6"/>
+																							<style name="sboneOfTotalST"
+																								keep="false"/>
+
+																								<style name="sbEyeMark"
+																									keep="true"
+																									url="%FIRSTXML%/graphics/alpo.sidebar-v1.0.72/graphics/sb_eye.png"/>
+
+																									<action name="sbThumbsCloseIfnewCallAct"> sbThumbsCloseIfnewAct();</action>    <action name="appendTHname"> set(thName_pano10, sbPanoThumbInner_0_0);</action><layer name="sbPanoDispLboxOverlay" keep="true" type="container" width="100%" height="100%" align="center" visible="false" alpha="0" autoalpha="true" bgcolor="0x030303" bgalpha="0.80" bgcapture="true" zorder="99" onclick="hidePD()"/>
+  <!-- MAP -->
+  <action name="hideMap">set(tour_displaymap, false);events.dispatch(onhidetourmap);</action>
+  <action name="showMap">set(tour_displaymap, true); events.dispatch(onshowtourmap);</action>
+
+</krpano>
